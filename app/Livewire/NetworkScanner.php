@@ -48,8 +48,13 @@ class NetworkScanner extends Component
         $id = $agencyId ?: $this->selectedAgencyId;
         if ($id) {
             $agency = Agency::find($id);
-            if ($agency && $agency->network_address) {
-                $this->ipRange = $agency->network_address;
+            if ($agency) {
+                if (!empty($agency->network_address)) {
+                    $this->ipRange = $agency->network_address;
+                } elseif (!empty($agency->router_ip)) {
+                    // Calcul automatique du sous-réseau /24 à partir de l'IP du routeur
+                    $this->ipRange = preg_replace('/\.\d+$/', '.0/24', $agency->router_ip);
+                }
             }
         }
     }
