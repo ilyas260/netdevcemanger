@@ -1,14 +1,6 @@
 {
   "apps": [
     {
-      "app_id": "app_6a6bc02f-7c8c-401f-8427-5eaf6abbbebd",
-      "org_id": "user_0ee0d304-8f1f-4959-a517-772ae4213b4b",
-      "deploy_url": "https://push-n3-par-clevercloud-customers.services.clever-cloud.com/app_6a6bc02f-7c8c-401f-8427-5eaf6abbbebd.git",
-      "git_ssh_url": "git+ssh://git@push-n3-par-clevercloud-customers.services.clever-cloud.com/app_6a6bc02f-7c8c-401f-8427-5eaf6abbbebd.git",
-      "name": "netdevcemanger",
-      "alias": "netdevcemanger"
-    },
-    {
       "app_id": "app_59545d29-0afa-49d5-aea7-9e11de966706",
       "org_id": "user_0ee0d304-8f1f-4959-a517-772ae4213b4b",
       "deploy_url": "https://push-n3-par-clevercloud-customers.services.clever-cloud.com/app_59545d29-0afa-49d5-aea7-9e11de966706.git",
@@ -18,7 +10,3 @@
     }
   ]
 }
-
-
-
-# deploy
