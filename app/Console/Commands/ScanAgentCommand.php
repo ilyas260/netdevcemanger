@@ -77,6 +77,8 @@ class ScanAgentCommand extends Command
                     $agencyName = $a['name'];
                     if (!$ipRange && !empty($a['network_address'])) {
                         $ipRange = $a['network_address'];
+                    } elseif (!$ipRange && !empty($a['router_ip'])) {
+                        $ipRange = preg_replace('/\.\d+$/', '.0/24', $a['router_ip']);
                     }
                     break;
                 }
