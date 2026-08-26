@@ -32,7 +32,7 @@ class ScanSyncController extends Controller
             return response()->json(['error' => 'Non autorisé. Jeton invalide.'], 401);
         }
 
-        $agencies = Agency::orderBy('name')->get(['id', 'name', 'code', 'network_address']);
+        $agencies = Agency::orderBy('name')->get(['id', 'name', 'network_address', 'router_ip', 'location']);
 
         return response()->json([
             'success'  => true,
