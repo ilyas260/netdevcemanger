@@ -76,23 +76,23 @@ class ScanSnmpJob implements ShouldQueue
         // -T4 : Profil de scan rapide
         // Ports : SSH (22), web, NetBIOS/SMB, SNMP, RDP (3389) et jetdirect
         $ipList = implode(' ', $ips);
-        $cmd = "{$nmap} -R -Pn -sT -T5 -p 22,80,443,135,139,445,161,3389,9100 --script smb-os-discovery {$sFlag} --max-rtt-timeout 200ms --max-retries 0 --host-timeout 5s --min-rate 1000 {$ipList} 2>&1";
+        $cmd = "{$nmap} -R -Pn -sT -T5 -p 22,80,443,135,139,445,161,3389,9100 --max-rtt-timeout 250ms --max-retries 0 --host-timeout 5s --min-rate 1000 {$ipList} 2>&1";
 
         Log::debug("[Scanner] Nmap cmd: $cmd");
         $output = @shell_exec($cmd);
 
         $active = [];
-        if (!$output) {
-            Log::warning("[Scanner] Nmap n'a retourné aucune sortie. Fallback port check.");
+        if (!$output || !str_contains($output, 'Nmap scan report for')) {
+            Log::warning("[Scanner] Nmap non disponible ou sans rapport valide. Utilisation du port check direct.");
             // Fallback : port check rapide si Nmap échoue
             foreach ($ips as $ip) {
                 if ($this->fastPortCheck($ip)) {
-                    $dnsName = false; // Désactivé car trop lent: @gethostbyaddr($ip);
+                    $dnsName = @gethostbyaddr($ip);
                     
                     // Détection d'imprimante via ports d'impression ouverts (9100, 515, 631)
                     $isPrinter = false;
                     foreach ([9100, 515, 631] as $printPort) {
-                        $fp = @fsockopen($ip, $printPort, $errno, $errstr, 0.2);
+                        $fp = @fsockopen($ip, $printPort, $errno, $errstr, 0.15);
                         if ($fp) {
                             fclose($fp);
                             $isPrinter = true;

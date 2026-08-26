@@ -189,30 +189,12 @@
                                     </table>
                                 </div>
                             @else
-                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center space-y-4">
-                                    <div class="inline-flex p-3 bg-blue-100 text-blue-600 rounded-full">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <h4 class="text-base font-bold text-slate-800">Scanner les équipements depuis le réseau local</h4>
-                                    <p class="text-xs text-slate-600 max-w-lg mx-auto leading-relaxed">
-                                        Sur Clever Cloud, le serveur ne peut pas traverser Internet pour joindre directement les adresses IP privées d'agences (192.168.x.x / 10.x.x.x). 
-                                        Utilisez l'<strong>Agent de Scan Local</strong> depuis n'importe quel poste connecté au réseau de l'agence pour remonter automatiquement les équipements en direct !
-                                    </p>
-
-                                    <div class="max-w-xl mx-auto bg-slate-900 text-slate-100 p-4 rounded-xl text-left font-mono text-xs shadow-inner relative group">
-                                        <div class="text-[10px] text-slate-400 mb-1 uppercase tracking-wider font-sans font-bold flex justify-between items-center">
-                                            <span>Commande Agent de Scan</span>
-                                            <span class="text-emerald-400">Prête à l'emploi</span>
-                                        </div>
-                                        <div class="text-emerald-300 font-semibold select-all py-1">
-                                            php artisan scan:agent {{ $selectedAgencyId ?: 1 }}
-                                        </div>
-                                        <div class="text-[10px] text-slate-400 mt-2 font-sans">
-                                            💡 Exécutez cette commande dans le terminal de votre PC sur place. Tous les PC, routeurs et imprimantes détectés apparaîtront automatiquement ici et dans l'inventaire.
-                                        </div>
-                                    </div>
+                                <div class="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                                    </svg>
+                                    <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun scan récent</h3>
+                                    <p class="mt-1 text-sm text-gray-500">Sélectionnez une agence et cliquez sur "Démarrer le Scan SNMP" pour lancer la découverte des équipements.</p>
                                 </div>
                             @endif
                         </div>
