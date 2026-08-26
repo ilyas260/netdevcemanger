@@ -32,7 +32,9 @@ class ScanSnmpJob implements ShouldQueue
         if ($this->batch()?->cancelled()) return;
 
         putenv('MIBS=none');
-        @snmp_set_oid_numeric_print(1);
+        if (function_exists('snmp_set_oid_numeric_print')) {
+            @snmp_set_oid_numeric_print(1);
+        }
 
         Log::info("[Scanner] Batch de " . count($this->ips) . " IP(s). Scan ID: {$this->scanId}");
 
