@@ -17,19 +17,19 @@ class DeviceStatusAlert extends Mailable implements ShouldQueue
     public $ipAddress;
     public $status;
     public $type; // 'Appareil' ou 'Agence'
-    public $message; // Message d'alerte personnalisé (optionnel)
+    public $alertMessage; // Message d'alerte personnalisé (optionnel)
     public $eventTime;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($targetName, $ipAddress, $status, $type = 'Appareil', $message = null)
+    public function __construct($targetName, $ipAddress, $status, $type = 'Appareil', $alertMessage = null)
     {
         $this->targetName = $targetName;
         $this->ipAddress = $ipAddress;
         $this->status = $status;
         $this->type = $type;
-        $this->message = $message;
+        $this->alertMessage = $alertMessage;
         $this->eventTime = now()->format('d/m/Y H:i:s');
         $this->queue = 'scan';
     }

@@ -97,7 +97,7 @@ class PingService
     /**
      * Exécute un ping vers le routeur principal d'une agence avec diagnostic hiérarchique
      */
-    public function executeAgencyPing(Agency $agency, int $packets = 4): array
+    public function executeAgencyPing(Agency $agency, int $packets = 4, bool $isRetry = false): array
     {
         $pingPath = "C:\\Windows\\System32\\ping.exe";
         $ip = trim($agency->router_ip);
@@ -119,6 +119,12 @@ class PingService
                 $status = 'online';
                 $metrics['loss_pct'] = 0;
             }
+        }
+        
+        // LOGIQUE DE RETRY : Si ping échoue la première fois, on réessaie une 2ème fois (comme demandé : "si le ping fait deux fois et une agence offline")
+        if ($status === 'offline' && !$isRetry) {
+            sleep(1);
+            return $this->executeAgencyPing($agency, $packets, true);
         }
         
         $oldStatus = $agency->status;
@@ -151,7 +157,7 @@ class PingService
             'max_latency_ms'   => $metrics['max_latency'],
             'status'           => $status,
             'message'          => $message,
-            'triggered_by'     => 'scheduler',
+            'triggered_by'     => $isRetry ? 'scheduler-retry' : 'scheduler',
         ]);
 
         $hasActiveIssue = $agency->hasActiveConnectivityIssues();
@@ -161,8 +167,9 @@ class PingService
             $connectivityService = new ConnectivityIssueService();
             $issue = $connectivityService->identifyAndRecord($agency);
             
-            // L'email d'alerte n'est plus envoyé ici individuellement. 
-            // Il sera envoyé groupé par la commande SendPendingConnectivityAlerts.
+            // Envoi immédiat d'un email au responsable avec le diagnostic (Hiérarchique)
+            $this->sendHierarchicalAlert($agency);
+            
         } elseif ($status === 'online' && ($oldStatus === 'offline' || $hasActiveIssue)) {
             // Résoudre le problème quand la connexion revient
             $connectivityService = new ConnectivityIssueService();

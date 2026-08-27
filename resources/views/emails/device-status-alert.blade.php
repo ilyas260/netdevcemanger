@@ -46,7 +46,12 @@
             
             <div class="content">
                 <div class="alert-title">Notification de Supervision</div>
-                <div class="alert-desc">Les sondes SRM ont détecté une modification sur l'infrastructure réseau.</div>
+                <div class="alert-desc">
+                    Les sondes SRM ont détecté une modification sur l'infrastructure réseau.<br><br>
+                    @if(!empty($alertMessage))
+                    <strong>Diagnostic automatique :</strong> <span style="color: #dc2626;">{{ $alertMessage }}</span>
+                    @endif
+                </div>
                 
                 <div class="data-grid">
                     <div class="data-item">
