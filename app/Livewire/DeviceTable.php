@@ -35,7 +35,7 @@ class DeviceTable extends Component
 
     public function render()
     {
-        $query = Device::query();
+        $query = Device::query()->whereNotIn('type', ['routeur', 'router']);
 
         if ($this->search) {
             $query->where(function($q) {
@@ -84,7 +84,7 @@ class DeviceTable extends Component
     public function pingAllDevices()
     {
         abort_if(auth()->user()->hasRole('consultant'), 403);
-        $query = Device::query();
+        $query = Device::query()->whereNotIn('type', ['routeur', 'router']);
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')

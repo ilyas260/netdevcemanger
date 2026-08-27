@@ -46,11 +46,11 @@
 
             <select wire:model.live="type" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 <option value="">Tous les types</option>
+                <option value="pc">PC</option>
                 <option value="imprimante">Imprimante</option>
-                <option value="routeur">Routeur</option>
                 <option value="switch">Switch</option>
                 <option value="serveur">Serveur</option>
-                <option value="pc">PC</option>
+                <option value="autre">Autre</option>
             </select>
 
             <select wire:model.live="status" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">

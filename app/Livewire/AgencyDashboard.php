@@ -19,7 +19,7 @@ class AgencyDashboard extends Component
     public function render()
     {
         return view('livewire.agency-dashboard', [
-            'devices' => $this->agency->devices()->latest()->get()
+            'devices' => $this->agency->devices()->whereNotIn('type', ['routeur', 'router'])->latest()->get()
         ])->layout('layouts.app');
     }
 
