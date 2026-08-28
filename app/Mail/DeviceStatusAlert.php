@@ -2,16 +2,14 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class DeviceStatusAlert extends Mailable implements ShouldQueue
+class DeviceStatusAlert extends Mailable
 {
-    use Queueable, SerializesModels;
+    use SerializesModels;
 
     public $targetName;
     public $ipAddress;
@@ -31,7 +29,6 @@ class DeviceStatusAlert extends Mailable implements ShouldQueue
         $this->type = $type;
         $this->alertMessage = $alertMessage;
         $this->eventTime = now()->format('d/m/Y H:i:s');
-        $this->queue = 'scan';
     }
 
     /**
