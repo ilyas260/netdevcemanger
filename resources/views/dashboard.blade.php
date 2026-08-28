@@ -55,8 +55,12 @@
                     <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     État de Santé Réseau
                 </h3>
-                <div class="h-64 flex justify-center">
+                <div class="h-64 flex justify-center relative">
                     <canvas id="statusChart"></canvas>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                        <span class="text-4xl font-black text-slate-800">{{ $stats['total_devices'] }}</span>
+                        <span class="text-xs uppercase font-bold text-slate-400 mt-1">Appareils</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,20 +73,30 @@
         // Chart Type Distribution
         const typeCtx = document.getElementById('typeChart').getContext('2d');
         new Chart(typeCtx, {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: {!! json_encode($chartData['device_types']->pluck('type')) !!},
+                labels: {!! json_encode($chartData['device_types']->pluck('type')->map('ucfirst')) !!},
                 datasets: [{
                     data: {!! json_encode($chartData['device_types']->pluck('total')) !!},
-                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#64748b'],
-                    borderWidth: 0
+                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#0ea5e9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '65%',
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { 
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
                 }
             }
         });
@@ -99,17 +113,25 @@
                         {{ $chartData['status_distribution']['offline'] }},
                         {{ $chartData['status_distribution']['inactive'] }}
                     ],
-                    backgroundColor: ['#10b981', '#ef4444', '#cbd5e1'],
-                    borderWidth: 0,
-                    weight: 0.5
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '70%',
+                cutout: '75%',
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: { 
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
                 }
             }
         });

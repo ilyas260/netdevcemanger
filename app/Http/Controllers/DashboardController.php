@@ -21,9 +21,7 @@ class DashboardController extends Controller
         $stats = [
             'total_devices' => Device::count(),
             'active_devices' => Device::active()->count(),
-            'offline_devices' => Device::active()
-                ->where('last_seen_at', '<', now()->subMinutes(\App\Models\Setting::get('ping_interval', 5) * 3)) // Seuil de 3 fois l'intervalle pour éviter les faux positifs
-                ->count(),
+            'offline_devices' => $this->getOfflineCount(),
             'unresolved_errors' => ErrorLog::where('is_resolved', false)->count(),
             'active_toner_alerts' => TonerAlert::where('is_resolved', false)->count(),
         ];
