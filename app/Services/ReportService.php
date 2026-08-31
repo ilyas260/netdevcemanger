@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Agency;
 use App\Models\Device;
 use App\Models\PingLog;
 use App\Models\ErrorLog;
@@ -9,7 +10,6 @@ use App\Models\TonerAlert;
 use App\Models\PrinterCounter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Response;
 
 class ReportService
@@ -19,25 +19,21 @@ class ReportService
      */
     public function generate(Carbon $start, Carbon $end): array
     {
-        $data = [
-            'period' => [
+        return [
+            'period'           => [
                 'start' => $start->toDateTimeString(),
-                'end' => $end->toDateTimeString(),
+                'end'   => $end->toDateTimeString(),
             ],
-            'stats' => [
-                'total_devices' => Device::count(),
-                'active_devices' => Device::active()->count(),
-                'total_errors' => ErrorLog::whereBetween('logged_at', [$start, $end])->count(),
-                'unresolved_errors' => ErrorLog::unresolved()->count(),
-                'toner_alerts' => TonerAlert::whereBetween('alerted_at', [$start, $end])->count(),
-            ],
-            'connectivity' => $this->getConnectivityStats($start, $end),
-            'printing' => $this->getPrintingStats($start, $end),
+            'generated_at'     => now()->format('d/m/Y H:i:s'),
+            'generated_by'     => auth()->user()?->name ?? 'Système',
+            'stats'            => $this->getGlobalStats($start, $end),
+            'agencies'         => $this->getAgenciesStatus(),
+            'connectivity'     => $this->getConnectivityStats($start, $end),
             'top_disconnected' => $this->getTopDisconnected($start, $end),
-            'current_toner' => $this->getCurrentTonerState(),
+            'recent_errors'    => $this->getRecentErrors($start, $end),
+            'printing'         => $this->getPrintingStats($start, $end),
+            'current_toner'    => $this->getCurrentTonerState(),
         ];
-
-        return $data;
     }
 
     /**
@@ -45,99 +41,158 @@ class ReportService
      */
     public function exportPdf(array $data): Response
     {
-        $pdf = Pdf::loadView('reports.pdf.full', $data);
-        return $pdf->download('report_' . now()->format('Y-m-d_His') . '.pdf');
+        $pdf = Pdf::loadView('reports.pdf.full', $data)
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'defaultFont'    => 'sans-serif',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'=> false,
+            ]);
+
+        return $pdf->download('rapport_netdevice_' . now()->format('Y-m-d_His') . '.pdf');
     }
 
-    /**
-     * Send report by email (implementation template).
-     */
-    public function sendByEmail(array $data, string $email): void
-    {
-        // Envoi via une Mailable (à définir plus tard)
-        // Mail::to($email)->send(new \App\Mail\WeeklyReportMail($data));
-    }
+    // ──────────────────────────────────────────────
+    // Private helpers
+    // ──────────────────────────────────────────────
 
-    /**
-     * Connectivity details.
-     */
-    private function getConnectivityStats(Carbon $start, Carbon $end): array
+    private function getGlobalStats(Carbon $start, Carbon $end): array
     {
-        $totalPings = PingLog::whereBetween('tested_at', [$start, $end])->count();
-        if ($totalPings === 0) return ['availability_rate' => 100];
+        $totalPings   = PingLog::whereBetween('tested_at', [$start, $end])->count();
+        $onlinePings  = PingLog::whereBetween('tested_at', [$start, $end])
+            ->whereIn('status', ['online', 'slow'])->count();
 
-        $onlinePings = PingLog::whereBetween('tested_at', [$start, $end])
-            ->whereIn('status', ['online', 'slow'])
-            ->count();
+        $availRate = $totalPings > 0
+            ? round(($onlinePings / $totalPings) * 100, 1)
+            : 100;
 
         return [
-            'availability_rate' => round(($onlinePings / $totalPings) * 100, 2),
-            'total_pings' => $totalPings,
-            'offline_count' => $totalPings - $onlinePings,
+            'total_agencies'    => Agency::count(),
+            'agencies_online'   => Agency::where('status', 'online')->count(),
+            'agencies_offline'  => Agency::where('status', 'offline')->count(),
+            'total_devices'     => Device::count(),
+            'active_devices'    => Device::active()->count(),
+            'total_errors'      => ErrorLog::whereBetween('logged_at', [$start, $end])->count(),
+            'resolved_errors'   => ErrorLog::whereBetween('logged_at', [$start, $end])->where('is_resolved', true)->count(),
+            'unresolved_errors' => ErrorLog::unresolved()->count(),
+            'toner_alerts'      => TonerAlert::whereBetween('alerted_at', [$start, $end])->count(),
+            'availability_rate' => $availRate,
         ];
     }
 
-    /**
-     * Pagination stats for printers.
-     */
-    private function getPrintingStats(Carbon $start, Carbon $end): array
+    private function getAgenciesStatus(): array
     {
-        return Device::where('type', 'imprimante')
-            ->with(['printerCounters' => function($q) use ($start, $end) {
-                $q->whereBetween('recorded_at', [$start, $end])->orderBy('recorded_at', 'desc');
-            }])
+        return Agency::withCount('devices')
+            ->orderByRaw("FIELD(status, 'offline', 'unknown', 'online')")
             ->get()
-            ->map(function($device) {
-                $counters = $device->printerCounters;
-                if ($counters->isEmpty()) return null;
-                
-                $latest = $counters->first();
-                $oldest = $counters->last();
-
-                return [
-                    'device_name' => $device->name,
-                    'pages_printed' => $latest->total_pages - $oldest->total_pages,
-                    'current_total' => $latest->total_pages,
-                ];
-            })
-            ->filter()
+            ->map(fn($a) => [
+                'name'        => $a->name,
+                'location'    => $a->location ?? '—',
+                'router_ip'   => $a->router_ip,
+                'status'      => $a->status ?? 'unknown',
+                'last_ping'   => $a->last_ping_at ? Carbon::parse($a->last_ping_at)->format('d/m/Y H:i') : '—',
+                'devices'     => $a->devices_count,
+                'nd_technique'=> $a->nd_technique ?? '—',
+            ])
             ->toArray();
     }
 
-    /**
-     * Top 10 devices with most offline time.
-     */
+    private function getConnectivityStats(Carbon $start, Carbon $end): array
+    {
+        $totalPings  = PingLog::whereBetween('tested_at', [$start, $end])->count();
+        if ($totalPings === 0) {
+            return ['availability_rate' => 100, 'total_pings' => 0, 'offline_count' => 0];
+        }
+
+        $onlinePings = PingLog::whereBetween('tested_at', [$start, $end])
+            ->whereIn('status', ['online', 'slow'])->count();
+
+        return [
+            'availability_rate' => round(($onlinePings / $totalPings) * 100, 1),
+            'total_pings'       => $totalPings,
+            'online_count'      => $onlinePings,
+            'offline_count'     => $totalPings - $onlinePings,
+        ];
+    }
+
     private function getTopDisconnected(Carbon $start, Carbon $end): array
     {
         return PingLog::whereBetween('tested_at', [$start, $end])
             ->where('status', 'offline')
-            ->whereHas('device') // Assure que l'appareil existe encore (non supprimé)
+            ->whereHas('device')
             ->selectRaw('device_id, count(*) as offline_events')
             ->groupBy('device_id')
             ->orderByDesc('offline_events')
             ->limit(10)
-            ->with('device:id,name')
+            ->with('device:id,name,type')
             ->get()
+            ->map(fn($row) => [
+                'name'           => $row->device->name ?? 'Appareil supprimé',
+                'type'           => $row->device->type ?? '—',
+                'offline_events' => $row->offline_events,
+            ])
             ->toArray();
     }
 
-    /**
-     * Current toner levels for all printers.
-     */
+    private function getRecentErrors(Carbon $start, Carbon $end): array
+    {
+        return ErrorLog::whereBetween('logged_at', [$start, $end])
+            ->with('device:id,name')
+            ->orderByDesc('logged_at')
+            ->limit(20)
+            ->get()
+            ->map(fn($e) => [
+                'date'          => Carbon::parse($e->logged_at)->format('d/m/Y H:i'),
+                'severity'      => $e->severity ?? 'ERROR',
+                'device'        => $e->device->name ?? 'Inconnu',
+                'message'       => \Illuminate\Support\Str::limit($e->message, 90),
+                'solution'      => $e->solution_type
+                    ? (\App\Models\ErrorLog::getSolutionTypes()[$e->solution_type] ?? $e->solution_type)
+                    : '—',
+                'is_resolved'   => $e->is_resolved,
+            ])
+            ->toArray();
+    }
+
+    private function getPrintingStats(Carbon $start, Carbon $end): array
+    {
+        return Device::where('type', 'imprimante')
+            ->with(['printerCounters' => fn($q) => $q
+                ->whereBetween('recorded_at', [$start, $end])
+                ->orderBy('recorded_at', 'desc')])
+            ->get()
+            ->map(function ($device) {
+                $counters = $device->printerCounters;
+                if ($counters->isEmpty()) return null;
+
+                $latest = $counters->first();
+                $oldest = $counters->last();
+
+                return [
+                    'device_name'   => $device->name,
+                    'pages_printed' => max(0, $latest->total_pages - $oldest->total_pages),
+                    'current_total' => $latest->total_pages,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->toArray();
+    }
+
     private function getCurrentTonerState(): array
     {
         return Device::where('type', 'imprimante')
             ->get()
-            ->map(function($device) {
-                $lastCounter = $device->printerCounters()->latest('recorded_at')->first();
+            ->map(function ($device) {
+                $last = $device->printerCounters()->latest('recorded_at')->first();
                 return [
                     'device_name' => $device->name,
-                    'toner' => $lastCounter ? [
-                        'black' => $lastCounter->toner_black_pct,
-                        'cyan' => $lastCounter->toner_cyan_pct,
-                        'magenta' => $lastCounter->toner_magenta_pct,
-                        'yellow' => $lastCounter->toner_yellow_pct,
-                    ] : null
+                    'toner'       => $last ? [
+                        'black'   => $last->toner_black_pct   ?? null,
+                        'cyan'    => $last->toner_cyan_pct    ?? null,
+                        'magenta' => $last->toner_magenta_pct ?? null,
+                        'yellow'  => $last->toner_yellow_pct  ?? null,
+                    ] : null,
                 ];
             })
             ->toArray();
