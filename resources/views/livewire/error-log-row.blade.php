@@ -16,7 +16,7 @@
             {{-- Mode saisie --}}
             <div class="flex flex-col gap-2">
                 <select
-                    wire:model="solution_type"
+                    wire:model.live="solution_type"
                     class="text-xs rounded-lg border-slate-300 shadow-sm focus:border-indigo-400 focus:ring focus:ring-indigo-100 w-full"
                 >
                     <option value="">— Sélectionner un diagnostic —</option>
@@ -37,8 +37,8 @@
                 <div class="flex items-center gap-2 mt-1">
                     <button
                         wire:click="saveDiagnosticConfirmed"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700 shadow-sm transition-all disabled:opacity-50"
-                        @if(!$solution_type) disabled @endif
+                        class="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold rounded-lg shadow-sm transition-all {{ $solution_type ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}"
+                        {{ !$solution_type ? 'disabled' : '' }}
                     >
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         Valider
