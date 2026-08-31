@@ -17,11 +17,15 @@ class ErrorLogRow extends Component
     public $showEmailModal = false;
     public $resolution_note = '';
     public $solution_type = '';
+    public $editingDiagnostic = false;
+    public $diagnosticSaved = false;
+    public $custom_solution = '';
 
 
     public function mount()
     {
         $this->solution_type = $this->log->solution_type ?? '';
+        $this->editingDiagnostic = empty($this->log->solution_type);
     }
 
     public function getStatusDisplayProperty()
@@ -103,33 +107,49 @@ class ErrorLogRow extends Component
         $this->closeResolveModal();
     }
 
-    public $custom_solution = '';
-
-    public function saveDiagnostic()
+    public function saveDiagnosticConfirmed()
     {
         abort_if(auth()->user()->hasRole('consultant'), 403);
-        if ($this->solution_type === 'autre') {
-            return; // On attend la saisie manuelle
-        }
 
-        if (!empty($this->solution_type)) {
-            $this->log->update([
-                'solution_type' => $this->solution_type,
-            ]);
-            session()->flash('success', "Diagnostic enregistré.");
-        }
+        $valueToSave = ($this->solution_type === 'autre' && !empty($this->custom_solution))
+            ? $this->custom_solution
+            : $this->solution_type;
+
+        $this->validate(['solution_type' => 'required|string'], [
+            'solution_type.required' => 'Veuillez sélectionner un diagnostic.',
+        ]);
+
+        $this->log->update(['solution_type' => $valueToSave]);
+        $this->log->refresh();
+
+        $this->solution_type = $valueToSave;
+        $this->editingDiagnostic = false;
+        $this->diagnosticSaved = true;
+        $this->custom_solution = '';
+
+        // Masquer le badge "Enregistré" après 3 secondes
+        $this->dispatch('diagnostic-saved-' . $this->log->id);
     }
 
-    public function saveCustomDiagnostic()
+    public function startEditDiagnostic()
     {
         abort_if(auth()->user()->hasRole('consultant'), 403);
-        if (!empty($this->custom_solution)) {
-            $this->log->update([
-                'solution_type' => $this->custom_solution,
-            ]);
-            $this->solution_type = $this->custom_solution;
-            session()->flash('success', "Diagnostic personnalisé enregistré.");
-        }
+        $this->solution_type = $this->log->solution_type ?? '';
+        $this->editingDiagnostic = true;
+        $this->diagnosticSaved = false;
+    }
+
+    public function cancelEditDiagnostic()
+    {
+        $this->solution_type = $this->log->solution_type ?? '';
+        $this->editingDiagnostic = false;
+        $this->diagnosticSaved = false;
+    }
+
+    /** @deprecated Kept for backward compat if called via old wire:change */
+    public function saveDiagnostic()
+    {
+        $this->saveDiagnosticConfirmed();
     }
 
     public function sendEmail()
